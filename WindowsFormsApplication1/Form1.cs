@@ -175,6 +175,7 @@ namespace WindowsFormsApplication1
 
         private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
         {
+            System.Threading.Thread.Sleep(100);
             if (que.Count > 0)
             {
                 for (int i = 0; i < que.Count; i++)
@@ -193,6 +194,7 @@ namespace WindowsFormsApplication1
 
         private void backgroundWorker2_DoWork(object sender, DoWorkEventArgs e)
         {
+            System.Threading.Thread.Sleep(100);
             if (queSql.Count > 0)
             {
                 for (int i = 0; i < queSql.Count; i++)
