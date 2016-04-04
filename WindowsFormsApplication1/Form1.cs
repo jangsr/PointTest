@@ -20,10 +20,12 @@ namespace WindowsFormsApplication1
         private BackgroundWorker worker;
         private BackgroundWorker worker2;
 
+        List<string> PointListDupcheck = new List<string>();
+
         public Form1()
         {
             InitializeComponent();
-            tbFileUrl.Text = @"C:\Users\JSR\Desktop\인터페이스_1\009. 전력량_MODBUS(node91~98)\MODBUS";
+            tbFileUrl.Text = @"C:\";
             tbNet.Text = "1.1";
             tbCul.Text = "기동시간적산,가스량계,E_Cooling,E_Heating,KWH,적산,누적";
             tbSql.Text = "Data Source=localhost;Initial Catalog=" + "OEMSMST" + ";USER ID=" + "sa" + ";PASSWORD=" + "pass@word!02" + ";Connection Timeout=3600";
@@ -89,13 +91,15 @@ namespace WindowsFormsApplication1
                         //OBJECT_NAME	DEVICE_INST	OBJECT_TYPE	OBJECT_INST
                         for (int j = 0; j < result.Tables[i].Rows.Count; j++)
                         {
-                            var pointCul = "순시값"; 
                             var pointName = result.Tables[i].Rows[j]["OBJECT_NAME"].ToString();
                             var pointAddr = string.Format("{0}.{1}.{2}-{3}", tbNet.Text, result.Tables[i].Rows[j]["DEVICE_INST"].ToString(), result.Tables[i].Rows[j]["OBJECT_TYPE"].ToString(), result.Tables[i].Rows[j]["OBJECT_INST"].ToString());
                             var cul = CheckCul(pointName);
                             resultData = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15},{16}", pointAddr, pointName.Replace(",",""),string.Empty, string.Empty, "Real", "사용중", "사용중",string.Empty,string.Empty,string.Empty, string.Empty, string.Empty, "Analog", "R", cul, string.Empty, pointName.Replace(",", ""));
                             var tbPoint = "INSERT INTO tbPoint VALUES ( " + string.Format(" '{0}', N'{1}', {2}, '{3}', '{4}', {5}, {6}, {7}, GETDATE(), 'setup', GETDATE(), 'setup')", pointAddr, pointName.Replace("'", ""), 9999, string.Empty, "R", 1, 1, 9999);
                             var tbPointProp = "DECLARE @Seq int; select @Seq = PointSeq from tbPoint where pt_addr = '" + pointAddr + "'; INSERT INTO tbPointProp VALUES ( " + string.Format("@Seq, '{0}', '{1}', {2}, {3}, '{4}', '{5}', '{6}', N'{7}',{8})", string.Empty, string.Empty, 0, 0, 'A', string.Empty, cul == "누적값" ? "C" : "I", pointName.Replace("'", ""), -1);
+
+                            if (PointListDupcheck.Count > 0 && PointListDupcheck.Contains(pointAddr)) continue; // 중복제거
+                            PointListDupcheck.Add(pointAddr);
                             que.Enqueue(resultData);
                             queSql.Enqueue(tbPoint);
                             queSql.Enqueue(tbPointProp);
@@ -104,6 +108,7 @@ namespace WindowsFormsApplication1
                 }
 
                 excelReader.Close();
+                PointListDupcheck.Clear();
             }
             queSql.Enqueue("insert into FMS_Master.dbo.tbTotal select PointSeq as pt_index, pt_addr, pt_name, 0 as pt_value, 0 as LogTime from vwPoint where pt_addr not in (select pt_addr from FMS_Master.dbo.tbTotal)");
         }
